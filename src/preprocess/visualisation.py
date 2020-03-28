@@ -4,10 +4,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-df = pd.read_csv( os.path.join(os.getcwd(),"combined_data.csv"))
-df['Date'] = pd.to_datetime(df['Date'],  infer_datetime_format=True)
-df1 = df[['Increase']].apply(pd.value_counts)
-df1.plot.bar(rot=0)
+
 
 # %%
 
@@ -57,15 +54,7 @@ def plot_multiple_normalised_trends(df,base_col,columns,labels):
     plt.show()
 
 
-closings = ("Close_10year_treasury", "Close_copper", "Close_gold","Close_hk_index" ,"Close_oil", "Close_s&p", "Value_us_sgd")
-labels = ("10year_treasury", "Copper", "Gold","HK_index" ,"Crude Oil", "S&P", "SGD v USD")
 
-plot_multiple_normalised_trends(df,"Close",closings,labels)
-
-volume = ( "Volume_copper", "Volume_gold","Volume_hk_index" ,"Volume_oil", "Volume_s&p")
-labels = ( "Copper", "Gold","HK_index" ,"Crude Oil", "S&P")
-
-plot_multiple_normalised_trends(df,"Close",volume,labels)
 
 
 # %%
@@ -84,7 +73,7 @@ def plot_corr(df,size=10):
     plt.xticks(range(len(corr.columns)), corr.columns, rotation=60, horizontalalignment='left');
     plt.yticks(range(len(corr.columns)), corr.columns);
 
-plot_corr(df)
+
 
 # %%
 
@@ -116,4 +105,21 @@ def plot_confusion_matrix(cm):
 
 
 if __name__ == "__main__":
+    # 1.
+    df = pd.read_csv( os.path.join(os.getcwd(),"combined_data.csv"))
+    df['Date'] = pd.to_datetime(df['Date'],  infer_datetime_format=True)
+    df1 = df[['Increase']].apply(pd.value_counts)
+    df1.plot.bar(rot=0)
+
+    # 2. trend 
+    closings = ("Close_10year_treasury", "Close_copper", "Close_gold","Close_hk_index" ,"Close_oil", "Close_s&p", "Value_us_sgd")
+    labels = ("10year_treasury", "Copper", "Gold","HK_index" ,"Crude Oil", "S&P", "SGD v USD")
+    plot_multiple_normalised_trends(df,"Close",closings,labels)
+
+    volume = ( "Volume_copper", "Volume_gold","Volume_hk_index" ,"Volume_oil", "Volume_s&p")
+    labels = ( "Copper", "Gold","HK_index" ,"Crude Oil", "S&P")
+    plot_multiple_normalised_trends(df,"Close",volume,labels)
+
+    # 3. correlation plot
+    plot_corr(df)
     pass
