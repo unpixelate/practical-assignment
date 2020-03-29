@@ -184,3 +184,85 @@ print(y_pred)
 
 
 # %%
+# autoregressive 
+
+from statsmodels.tsa.seasonal import seasonal_decompose
+from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
+import plotly.graph_objs as go
+import chart_studio.plotly as py
+import matplotlib.pyplot as plt
+df = get_data().copy()
+df['Date'] = pd.to_datetime(df['Date'],  infer_datetime_format=True)
+from statsmodels.tsa.seasonal import seasonal_decompose
+decomposition = seasonal_decompose(df.Close.values, freq=365) 
+trace1 = go.Scatter(
+    x = df.Date, y = decomposition.trend,
+    name = 'Trend',mode='lines'
+)
+trace2 = go.Scatter(
+    x = df.Date,y = decomposition.seasonal,
+    name = 'Seasonal',mode='lines'
+)
+trace3 = go.Scatter(
+    x = df.Date,y = decomposition.resid,
+    name = 'Residual',mode='lines'
+)
+trace4 = go.Scatter(
+    x = df.Date,y = df.Close,
+    name = 'Mean Stock Value',mode='lines'
+)
+
+data = [trace1,trace2,trace3,trace4]
+#plot(data)
+
+# a. Standard Average of Window
+close_list = list(df.Close)
+window_size = 20
+N = len(close_list)
+std_avg_predictions = list(close_list[:window_size])
+for pred_idx in range(window_size,N):
+    std_avg_predictions.append(np.mean(close_list[pred_idx-window_size:pred_idx]))
+
+# b. EXP Average of Window
+window_size = 100
+run_avg_predictions = []
+running_mean = 0.0
+run_avg_predictions.append(running_mean)
+decay = 0.8
+
+for pred_idx in range(1,N):
+    running_mean = running_mean*decay + (1.0-decay)*close_list[pred_idx-1]
+    run_avg_predictions.append(running_mean)
+
+trace5 = go.Scatter(
+    x = df.Date,y = std_avg_predictions,
+    name = 'Window AVG',mode='lines'
+)
+trace6 = go.Scatter(
+    x = df.Date,y = run_avg_predictions,
+    name = 'Moving AVG',mode='lines'
+)
+
+from statsmodels.tsa.ar_model import AR
+window_size = 50
+df.Date_plot = df['Date']
+df = df.set_index('Date')
+from statsmodels.tsa.ar_model import AR
+window_size = 50
+ar_list = list(close_list[:window_size])
+for pred_idx in range(window_size,N):
+
+    current_window = close_list[pred_idx-window_size:pred_idx]
+    model = AR(current_window)
+    model_fit = model.fit(max_lag=49)
+    current_predict = model_fit.predict(49,49)[0]
+    ar_list.append(current_predict)
+
+trace7 = go.Scatter(
+    x = df.index, y=ar_list,
+    name = 'Auto Regression',mode='lines'
+)
+
+data = [trace1,trace2,trace3,trace4,trace5,trace6,trace7]
+plot(data)
+# %%
