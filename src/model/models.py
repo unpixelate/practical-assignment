@@ -94,47 +94,93 @@ DEBUG=True
 def debug(*msg):
     if DEBUG:
         print(*msg)
-
+from preprocess.aggregator import LaggedDataFrame, get_data
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, LSTM, Dropout
+from tensorflow.keras import Input
+from tensorflow.keras import Model
+from tensorflow.keras.layers import Dense, LSTM, Dropout,RepeatVector
 from sklearn.model_selection import train_test_split
-
+import attention 
+import importlib
+importlib.reload(attention)
+from attention import attention_3d_block
+from sklearn.preprocessing import MinMaxScaler
 df = get_data().copy()
 df = df[df.columns[~df.columns.isin(['Date',"Close","Open"])]]
 
 
-time_step = 15
+time_step = 10
 data_size, data_dim = df.shape
 debug(data_size, data_dim)
 data_resize = data_size//time_step
 debug(data_resize)
 data_size_subset = data_resize * time_step 
 debug(data_size_subset)
-batch_size = 1
+batch_size = 10
 epoch = 100
 drop =0.2   
 
 y = df['Increase'][:data_size_subset]
 X = df[df.columns[~df.columns.isin(['Increase'])]][:data_size_subset]
-X_length , X_dim = X.shape
-debug(X.shape)
 
+X_length , input_dim = X.shape
+debug(X.shape)
+#scalar = MinMaxScaler((0,1))
+#X = scalar.fit_transform(X)
 # required format for lstm
-X_shaped = X.values.reshape(data_resize,time_step,X_dim) # 1= timesteps
+X_shaped = X.values.reshape(data_resize,time_step,input_dim) # 1= timesteps
 debug(X.shape)
 Y_shaped = y.values.reshape(data_resize,time_step)
+Y_shaped = Y_shaped[:,-1]
+debug("Y_shape: ",Y_shaped.shape)
 debug(X.shape)
+X_train, X_test, y_train, y_test = train_test_split(X_shaped, Y_shaped, test_size=0.2)
 
-model = Sequential()
-model.add(LSTM(36, return_sequences=True, input_shape=(1, data_dim)))  # returns a sequence of vectors of dimension 40
-model.add(Dropout(drop))
-model.add(LSTM(24,return_sequences=True))  # returns a sequence of vectors of dimension 40
-model.add(Dropout(drop))
-model.add(LSTM(10,return_sequences=True))  # returns a sequence of vectors of dimension 40
-model.add(Dropout(drop))
-model.add(LSTM(20))  # return a single vector of dimension 40
-model.add(Dropout(drop))
-model.add(Dense(time_step, activation='sigmoid')) 
+from keras.layers import concatenate
+from keras import backend as K
+from tensorflow.keras.layers import Dense, Lambda, dot, Activation, concatenate,GlobalAveragePooling1D
+def get_model(time_step,input_dim):
+    i = Input(shape=(time_step, input_dim))
+    x = LSTM(216, return_sequences=True)(i)
+    x = Dropout(0.2)(x)
+    x = LSTM(128, return_sequences=True)(x)
+    x = LSTM(100, return_sequences=True)(x)
+    x = Dropout(0.2)(x)
+    x = LSTM(128)(x)
+    x = Dense(time_step, activation='relu')(x)
+    model = Model(inputs=[i], outputs=[x])
+    model.compile(loss='binary_crossentropy',
+              optimizer='Adam',
+              metrics=['accuracy'])
+    print(model.summary())
+    return model
+
+from keras.callbacks import EarlyStopping,ModelCheckpoint   ,ReduceLROnPlateau        
+earlyStopping = EarlyStopping(monitor='val_loss', patience=15, verbose=1, mode='min')
+mcp_save = ModelCheckpoint('.mdl_wts.hdf5', save_best_only=True, monitor='val_loss', mode='min')
+reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.01, patience=4, verbose=1, epsilon=1e-4, mode='min')
+
+baseline = get_model(time_step,input_dim)
+# Train the model
+baseline.fit(X_train, y_train,
+          batch_size= batch_size, epochs=100,
+          validation_data = (X_test, y_test),
+          callbacks=[earlyStopping]  )
+
+
+#Evalute the model
+loss, acc = baseline.evaluate(X_test, y_test,1)
+
+print("Keras: \n%s: %.2f%%" % (baseline.metrics_names[1], acc*100))
+
+
+#%%
+y_pred =  (baseline.predict(X_test)>0.5).reshape(y_test.shape)
+cm = confusion_matrix(y_test,y_pred)
+plot_confusion_matrix(cm)
+print("Accuracy: {:.3f}".format(get_accuracy(y_test, y_pred)[0]))# %%
+print(y_pred)
+
 
 
 # %%

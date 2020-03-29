@@ -59,18 +59,18 @@ def aggregate(folder_path=DATA_ROOT
     debug(df.head())
     return df
 
-df = aggregate(files_to_be_excluded=["us_sgd.csv",'sti.csv'],columns=["Date", "Close", "Volume"])
+#df = aggregate(files_to_be_excluded=["us_sgd.csv",'sti.csv'],columns=["Date", "Close", "Volume"])
 
-df_temp = pd.read_csv(os.path.join(DATA_ROOT,"us_sgd.csv"))[["Date", "Value"]]
-df_temp.columns = rename_cols(df_temp.columns,"us_sgd")
-df = df.merge(df_temp,how='inner',left_on = "Date", right_on="Date")
+#df_temp = pd.read_csv(os.path.join(DATA_ROOT,"us_sgd.csv"))[["Date", "Value"]]
+#df_temp.columns = rename_cols(df_temp.columns,"us_sgd")
+#df = df.merge(df_temp,how='inner',left_on = "Date", right_on="Date")
 
-df_sti = pd.read_csv(os.path.join(DATA_ROOT,"sti.csv"))[["Date", "Open","Close"]]
-df_sti["Increase"] = df_sti["Close"] > df_sti["Open"]
+#df_sti = pd.read_csv(os.path.join(DATA_ROOT,"sti.csv"))[["Date", "Open","Close"]]
+#df_sti["Increase"] = df_sti["Close"] > df_sti["Open"]
 #df_sti["Open"] 
-df = df.merge(df_sti,how='inner',left_on = "Date", right_on="Date")
-df['Date'] = pd.to_datetime(df['Date'],  infer_datetime_format=True)
-df.to_csv('combined_data.csv', index=False)
+#df = df.merge(df_sti,how='inner',left_on = "Date", right_on="Date")
+#df['Date'] = pd.to_datetime(df['Date'],  infer_datetime_format=True)
+#df.to_csv('combined_data.csv', index=False)
 
 # %%
 class LaggedDataFrame:
@@ -115,8 +115,9 @@ class LaggedDataFrame:
         self.transformed_df = res.iloc[lag:]
         return self.transformed_df
 
-df_lagged = LaggedDataFrame(df,exclude_from_lagging=["Date", "Increase"]).buildLaggedFeatures(lag=2)
-df_lagged.to_csv('lagged_combined_data.csv',index=False)
+#df_lagged = LaggedDataFrame(df,exclude_from_lagging=["Date", "Increase"]).buildLaggedFeatures(lag=2)
+#df_lagged.to_csv('lagged_combined_data.csv',index=False)
+
 # %%
 def get_data():
     ROOT = os.getcwd()
